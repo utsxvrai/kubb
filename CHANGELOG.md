@@ -1,5 +1,51 @@
 # Changelog
 
+## v5.23.2 — Nov 21, 2026
+
+### @kubb/core
+
+#### Bug Fixes
+
+- Add `memo.get(key)`, `memo.set(key, value)` and `memo.has(key)` to the build memo, so a value can be replaced after it was first stored. The setup context gains `plugin`, with the name and meta of the plugin being set up, so `useKubb().plugin.name` works in `setup`. ([#4696](https://github.com/kubb-labs/kubb/pull/4696), [`266052e`](https://github.com/kubb-labs/kubb/commit/266052edccab9dcf9ac135c7a6d38f75080e74f8))
+- Clarify the `addMacro` JSDoc: macros with the same `enforce` run in the order they are added, `pre` macros run first, and `post` macros run last. ([#4694](https://github.com/kubb-labs/kubb/pull/4694), [`a30adf0`](https://github.com/kubb-labs/kubb/commit/a30adf081c5cb4462180cf5135649201e61e9058))
+- Add plugin visit hooks: `kubb:plugin:visit:start`, `kubb:plugin:visit:schema`, `kubb:plugin:visit:operation` and `kubb:plugin:visit:end`. Kubb calls them for one plugin while it walks the input, and they never reach the shared hooks bus. The build memo holds the shared-schema data under `kubb:sharedSchemas`. ([#4697](https://github.com/kubb-labs/kubb/pull/4697), [`2d77280`](https://github.com/kubb-labs/kubb/commit/2d77280f351404dbc7e340ef04058b282bb585ad))
+- Register generators, resolvers and macros with the `addGenerator`, `setResolver`, `addMacro` and `setMacros` composables from `@kubb/kit` in `setup` or `kubb:plugin:setup`. ([#4692](https://github.com/kubb-labs/kubb/pull/4692), [`0c25975`](https://github.com/kubb-labs/kubb/commit/0c25975232db75580d3016115df6b8ffc60a2533))
+- Remove core's generator path. `@kubb/kit` now owns resolvers, generators and macros, and `@kubb/core` only walks the input through each plugin's visit hooks.
+  
+  Removed from `@kubb/core`:
+  
+  - `Resolver`, `createResolver`, `defineResolver`, `toFilePath`, `resolverOptions` and `defineGenerator`.
+  - The `Generator`, `GeneratorContext`, `ResolverInput`, `ResolverPatch` types and the other resolver option types. `@kubb/kit` exports them, and `ResolverLike` is gone: types name kit's `Resolver`.
+  - The `addGenerator`, `setResolver`, `addMacro` and `setMacros` composables, and the methods of the same name on the setup context.
+  - The `resolver`, `generators` and `macros` fields of `NormalizedPlugin`, and `KubbDriver.getResolver`.
+  - `ctx.resolver` and `ctx.getResolver` on the visit-hook context, now `PluginVisitContext`.
+  - The `kubb:generate:schema`, `kubb:generate:operation` and `kubb:generate:operations` hook types, which `@kubb/kit` now declares and fires.
+  - `renderGeneratorSchema`, `renderGeneratorOperation` and `renderGeneratorOperations` from `@kubb/core/mocks`.
+  
+  To migrate a plugin:
+  
+  1. Import `defineExtension`, `defineGenerator`, `createResolver` and the composables from `kubb/kit` instead of `@kubb/core`.
+  2. Replace `ctx.addGenerator(...)`, `ctx.setResolver(...)`, `ctx.addMacro(...)` and `ctx.setMacros(...)` with the composables `addGenerator(...)`, `setResolver(...)`, `addMacro(...)` and `setMacros(...)`.
+  3. Read another plugin's resolver with `ctx.getResolver(name)` in a generator. A generator's `ctx.resolver` and `ctx.options` work as before.
+  
+  The composables report `KUBB_NO_CONTEXT` for a plugin defined with `defineExtension` or `definePlugin` from `@kubb/core`. `@kubb/kit` exports its own deprecated `definePlugin`, which runs kit's visitor. `@kubb/plugin-barrel` builds a barrel's banner and footer with the plugin's resolver from the build memo. ([#4698](https://github.com/kubb-labs/kubb/pull/4698), [`7efaee4`](https://github.com/kubb-labs/kubb/commit/7efaee46524f4fdde945ee79e6f834aa3a0115e6))
+
+### @kubb/kit
+
+#### Bug Fixes
+
+- Add `getResolver({ memo }, name)` to `@kubb/kit`. It returns the resolver a plugin keeps in the build memo, or a default resolver for that plugin. `@kubb/plugin-barrel` uses it for barrel banners and footers, so a plugin defined with kit's `defineExtension` gets its own resolver there. ([#4698](https://github.com/kubb-labs/kubb/pull/4698), [`7efaee4`](https://github.com/kubb-labs/kubb/commit/7efaee46524f4fdde945ee79e6f834aa3a0115e6))
+- Add `memo.scope(ctx, name)`. It returns the build memo with `name:` in front of every key, and types each slot from its full key in `Kubb.MemoRegistry`, such as `'plugin-zod:printer'`. `memo(key, compute)`, `memo(store, key, compute)` and `memo.create` work as before. ([#4695](https://github.com/kubb-labs/kubb/pull/4695), [`a0b1e9a`](https://github.com/kubb-labs/kubb/commit/a0b1e9a5e09e7fc32f12568ee17efa6439d089aa))
+- `@kubb/kit` owns `Resolver`, `createResolver`, `defineResolver`, `toFilePath` and `defineGenerator`. Plugins defined with kit's `defineExtension` keep their resolver, generators and macros in the build memo, and kit runs them through the plugin visit hooks.
+  
+  The generator context gains `ctx.operations` and `ctx.dispatch()`. The driver stores the shared-schema data in memo before setup, typed as `kubb:sharedSchemas` in `Kubb.MemoRegistry`. ([#4698](https://github.com/kubb-labs/kubb/pull/4698), [`7efaee4`](https://github.com/kubb-labs/kubb/commit/7efaee46524f4fdde945ee79e6f834aa3a0115e6))
+
+### Contributors
+
+Thanks to everyone who contributed to this release:
+
+[@stijnvanhulle](https://github.com/stijnvanhulle)
+
 ## v5.23.1 — Nov 19, 2026
 
 ### @kubb/core
